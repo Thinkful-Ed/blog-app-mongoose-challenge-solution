@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 
 const expect = chai.expect;
 
+// this makes the should syntax available throughout
+// this module
 chai.should();
 
 const {DATABASE_URL} = require('../config');
@@ -13,8 +15,6 @@ const {runServer, app} = require('../server');
 
 
 chai.use(chaiHttp);
-
-let server;
 
 // this function deletes the entire database.
 // we'll call it in an `afterEach` block below
@@ -167,13 +167,14 @@ describe('blog posts API resource', function() {
     //  1. Get an existing post from db
     //  2. Make a PUT request to update that post
     //  3. Prove post returned by request contains data we sent
-    //  4. 
+    //  4. Prove post in db is correctly updated
     it('should update fields you send over', function(done) {
-
+      // get a post
       BlogPost
         .findOne()
         .then(post =>{
 
+          // update data object we'll send with POST
           const updateData = {
             id: post.id,
             title: 'cats cats cats',
@@ -184,6 +185,8 @@ describe('blog posts API resource', function() {
             }
           };
 
+          // make request then inspect it to make sure it reflects
+          // data we sent
           chai.request(app)
             .put(`/posts/${post.id}`)
             .send(updateData)
@@ -195,9 +198,21 @@ describe('blog posts API resource', function() {
               res.body.author.should.equal(
                 `${updateData.author.firstName} ${updateData.author.lastName}`);
               res.body.content.should.equal(updateData.content);
-              done();
+
+              // ensure that the db reflects the update
+              BlogPost
+                .findById(res.body.id)
+                .then(post => {
+                  post.title.should.equal(updateData.title);
+                  post.content.should.equal(updateData.content);
+                  post.author.firstName.should.equal(updateData.author.firstName);
+                  post.author.lastName.should.equal(updateData.author.lastName);
+                  done();
+                })
+                .catch(err => console.error(err));
             })
             .catch(err => console.error(err));
+          console.log('here',  foo);
         });
     });
   });
@@ -237,6 +252,4 @@ describe('blog posts API resource', function() {
         .catch(err => {console.log(err)});
     });
   });
-
-
 });
