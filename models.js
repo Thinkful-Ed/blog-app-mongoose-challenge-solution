@@ -7,7 +7,7 @@ const blogPostSchema = mongoose.Schema({
   },
   title: {type: String, required: true},
   content: {type: String},
-  published: {type: Date, default: Date.now}
+  created: {type: Date, default: Date.now}
 });
 
 
@@ -21,7 +21,7 @@ blogPostSchema.methods.apiRepr = function() {
     author: this.authorName,
     content: this.content,
     title: this.title,
-    published: this.published
+    created: this.created
   };
 }
 
