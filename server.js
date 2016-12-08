@@ -89,7 +89,7 @@ app.put('/posts/:id', (req, res) => {
   });
 
   BlogPost
-    .findByIdAndUpdate(req.params.id, {$set: updated})
+    .findByIdAndUpdate(req.params.id, {$set: updated}, {new: true})
     .then(updatedPost => res.status(201).json(updatedPost.apiRepr()))
     .catch(err => res.status(500).json({message: 'Something went wrong'}));
 });
