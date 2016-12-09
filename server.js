@@ -95,7 +95,7 @@ app.put('/posts/:id', (req, res) => {
 });
 
 
-app.delete('/:id', (req, res) => {
+app.delete('/posts/:id', (req, res) => {
   BlogPosts.delete(req.params.id);
   console.log(`Deleted blog post with id \`${req.params.ID}\``);
   res.status(204).end();
