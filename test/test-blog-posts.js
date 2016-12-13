@@ -21,8 +21,12 @@ chai.use(chaiHttp);
 // to ensure  ata from one test does not stick
 // around for next one
 function tearDownDb() {
-  console.warn('Deleting database');
-  mongoose.connection.dropDatabase();
+  return new Promise((resolve, reject) => {
+    console.warn('Deleting database');
+    mongoose.connection.dropDatabase()
+      .then(result => resolve(result))
+      .catch(err => reject(err))
+  });
 }
 
 
@@ -44,22 +48,24 @@ function seedBlogPostData(cb) {
       content: faker.lorem.text()
     })
   }
-  BlogPost.insertMany(seedData).then(cb);
+  return BlogPost.insertMany(seedData);
 }
 
 
 describe('blog posts API resource', function() {
 
+  before(function() {
+    return runServer();
+  });
+
   beforeEach(function() {
-    // run the server, and once it's going seed db so we have data
-    // to work with
-    runServer(seedBlogPostData);
+    return seedBlogPostData();
   });
 
   afterEach(function() {
     // tear down database so we ensure no state from this test
     // effects any coming after.
-    tearDownDb();
+    return tearDownDb();
   });
 
   // note the use of nested `describe` blocks.
@@ -73,30 +79,33 @@ describe('blog posts API resource', function() {
       //    2. prove res has right status, data type
       //    3. prove the number of posts we got back is equal to number
       //       in db.
-        chai.request(app)
+      let res;
+      chai.request(app)
         .get('/posts')
-        .end(function(err, res) {
-
+        .then(_res => {
+          res = _res;
           res.should.have.status(200);
           // otherwise our db seeding didn't work
           res.body.should.have.length.of.at.least(1);
 
-          BlogPost
-            .count()
-            .then(count => {
-              // the number of returned posts should be same
-              // as number of posts in DB
-              res.body.should.have.length.of(count);
-              done();
-          });
-      });
+          return BlogPost.count();
+        })
+        .then(count => {
+          // the number of returned posts should be same
+          // as number of posts in DB
+          res.body.should.have.length.of(count);
+          done();
+        })
+        .catch(err => console.error(err));
     });
 
     it('should return posts with right fields', function(done) {
       // Strategy: Get back all posts, and ensure they have expected keys
+
+      let resPost;
       chai.request(app)
         .get('/posts')
-        .end(function(err, res) {
+        .then(function(res) {
 
           res.should.have.status(200);
           res.should.be.json;
@@ -108,20 +117,18 @@ describe('blog posts API resource', function() {
             post.should.be.a('object');
             post.should.include.keys('id', 'title', 'content', 'author', 'created');
           });
-
           // just check one of the posts that its values match with those in db
           // and we'll assume it's true for rest
-          const resPost = res.body[0]
-          BlogPost
-            .findById(resPost.id)
-            .then(post => {
-              resPost.title.should.equal(post.title);
-              resPost.content.should.equal(post.content);
-              resPost.author.should.equal(post.authorName);
-              done();
-            })
-            .catch(err => console.error(err));
-      });
+          resPost = res.body[0];
+          return BlogPost.findById(resPost.id);
+        })
+        .then(post => {
+          resPost.title.should.equal(post.title);
+          resPost.content.should.equal(post.content);
+          resPost.author.should.equal(post.authorName);
+          done();
+        })
+        .catch(err => console.error(err));
     });
   });
 
@@ -144,7 +151,7 @@ describe('blog posts API resource', function() {
       chai.request(app)
         .post('/posts')
         .send(newPost)
-        .end(function(err, res) {
+        .then(function(res) {
           res.should.have.status(201);
           res.should.be.json;
           res.body.should.be.a('object');
@@ -169,51 +176,44 @@ describe('blog posts API resource', function() {
     //  3. Prove post returned by request contains data we sent
     //  4. Prove post in db is correctly updated
     it('should update fields you send over', function(done) {
-      // get a post
+      const updateData = {
+        title: 'cats cats cats',
+        content: 'dogs dogs dogs',
+        author: {
+          firstName: 'foo',
+          lastName: 'bar'
+        }
+      };
+
       BlogPost
         .findOne()
-        .then(post =>{
+        .then(post => {
+          updateData.id = post.id;
 
-          // update data object we'll send with POST
-          const updateData = {
-            id: post.id,
-            title: 'cats cats cats',
-            content: 'dogs dogs dogs',
-            author: {
-              firstName: 'foo',
-              lastName: 'bar'
-            }
-          };
-
-          // make request then inspect it to make sure it reflects
-          // data we sent
-          chai.request(app)
+          return chai.request(app)
             .put(`/posts/${post.id}`)
-            .send(updateData)
-            .then(res => {
-              res.should.have.status(201);
-              res.should.be.json;
-              res.body.should.be.a('object');
-              res.body.title.should.equal(updateData.title);
-              res.body.author.should.equal(
-                `${updateData.author.firstName} ${updateData.author.lastName}`);
-              res.body.content.should.equal(updateData.content);
+            .send(updateData);
+        })
+        .then(res => {
+          console.log('here')
+          res.should.have.status(201);
+          res.should.be.json;
+          res.body.should.be.a('object');
+          res.body.title.should.equal(updateData.title);
+          res.body.author.should.equal(
+            `${updateData.author.firstName} ${updateData.author.lastName}`);
+          res.body.content.should.equal(updateData.content);
 
-              // ensure that the db reflects the update
-              BlogPost
-                .findById(res.body.id)
-                .then(post => {
-                  post.title.should.equal(updateData.title);
-                  post.content.should.equal(updateData.content);
-                  post.author.firstName.should.equal(updateData.author.firstName);
-                  post.author.lastName.should.equal(updateData.author.lastName);
-                  done();
-                })
-                .catch(err => console.error(err));
-            })
-            .catch(err => console.error(err));
-          console.log('here',  foo);
-        });
+          return BlogPost.findById(res.body.id);
+        })
+        .then(post => {
+          post.title.should.equal(updateData.title);
+          post.content.should.equal(updateData.content);
+          post.author.firstName.should.equal(updateData.author.firstName);
+          post.author.lastName.should.equal(updateData.author.lastName);
+          done();
+        })
+        .catch(err => console.error(err));
     });
   });
 
@@ -223,32 +223,25 @@ describe('blog posts API resource', function() {
     //  2. make a DELETE request for that post's id
     //  3. assert that response has right status code
     //  4. prove that post with the id doesn't exist in db anymore
-    it('delete post', function(done) {
+    it('should delete a post by id', function(done) {
 
-      // proves that a post does not exist in db anymore
-      function assertBlogPostDoesntExist(postId, callback) {
-        BlogPost.findById(postId)
-          .then(resp => {
-            expect(resp).to.be.null;
-            callback();
-          })
-          .catch(
-            err => console.log(err)
-          );
-      }
+      let post;
 
-      const getPostId = BlogPost
+      BlogPost
         .findOne()
         .exec()
+        .then(_post => {
+          post = _post;
+          return chai.request(app).delete(`/posts/${post.id}`);
+        })
+        .then(res => {
+          res.should.have.status(204);
+          return BlogPost.findById(post.id);
+        })
         .then(post => {
-          chai.request(app)
-            .delete(`/posts/${post.id}`)
-            .then(resp => {
-              resp.should.have.status(204);
-              assertBlogPostDoesntExist(post.id, done);
-            })
-            .catch(err => console.log(err));
-          })
+          expect(post).to.be.null;
+          done();
+        })
         .catch(err => {console.log(err)});
     });
   });
