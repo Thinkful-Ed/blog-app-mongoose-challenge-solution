@@ -3,11 +3,9 @@ const chaiHttp = require('chai-http');
 const faker = require('faker');
 const mongoose = require('mongoose');
 
-const expect = chai.expect;
-
 // this makes the should syntax available throughout
 // this module
-chai.should();
+const should = chai.should();
 
 const {DATABASE_URL} = require('../config');
 const {BlogPost} = require('../models');
@@ -35,7 +33,7 @@ function tearDownDb() {
 // we use the Faker library to automatically
 // generate placeholder values for author, title, content
 // and then we insert that data into mongo
-function seedBlogPostData(cb) {
+function seedBlogPostData() {
   console.info('seeding blog post data');
   const seedData = [];
   for (let i=1; i<=10; i++) {
@@ -46,8 +44,9 @@ function seedBlogPostData(cb) {
       },
       title: faker.lorem.sentence(),
       content: faker.lorem.text()
-    })
+    });
   }
+  // this will return a promise
   return BlogPost.insertMany(seedData);
 }
 
@@ -110,7 +109,6 @@ describe('blog posts API resource', function() {
           res.should.have.status(200);
           res.should.be.json;
           res.body.should.be.a('array');
-
           res.body.should.have.length.of.at.least(1);
 
           res.body.forEach(function(post) {
@@ -163,7 +161,17 @@ describe('blog posts API resource', function() {
           res.body.author.should.equal(
             `${newPost.author.firstName} ${newPost.author.lastName}`);
           res.body.content.should.equal(newPost.content);
+          return BlogPost.findById(res.body.id);
+        })
+        .then(function(post) {
+          post.title.should.equal(newPost.title);
+          post.content.should.equal(newPost.content);
+          post.author.firstName.should.equal(newPost.author.firstName);
+          post.author.lastName.should.equal(newPost.author.lastName);
           done();
+        })
+        .catch(function(err) {
+          console.error(err);
         })
     });
   });
@@ -195,7 +203,6 @@ describe('blog posts API resource', function() {
             .send(updateData);
         })
         .then(res => {
-          console.log('here')
           res.should.have.status(201);
           res.should.be.json;
           res.body.should.be.a('object');
@@ -238,8 +245,12 @@ describe('blog posts API resource', function() {
           res.should.have.status(204);
           return BlogPost.findById(post.id);
         })
-        .then(post => {
-          expect(post).to.be.null;
+        .then(_post => {
+          // when a variable's value is null, chaining `should`
+          // doesn't work. so `_post.should.be.null` would raise
+          // an error. `should.be.null(_post)` is how we can
+          // make assertions about a null value.
+          should.not.exist(_post);
           done();
         })
         .catch(err => {console.log(err)});
