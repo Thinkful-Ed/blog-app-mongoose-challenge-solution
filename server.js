@@ -30,6 +30,7 @@ app.get('/posts', (req, res) => {
 app.get('/posts/:id', (req, res) => {
   BlogPost
     .findById(req.params.id)
+    .exec()
     .then(post => res.json(post.apiRepr()))
     .catch(err => {
       console.error(err);
@@ -63,6 +64,7 @@ app.post('/posts', (req, res) => {
 app.delete('/posts/:id', (req, res) => {
   BlogPost
     .findByIdAndRemove(req.params.id)
+    .exec()
     .then(() => {
       res.status(204).json({message: 'success'});
     })
@@ -90,15 +92,19 @@ app.put('/posts/:id', (req, res) => {
 
   BlogPost
     .findByIdAndUpdate(req.params.id, {$set: updated}, {new: true})
+    .exec()
     .then(updatedPost => res.status(201).json(updatedPost.apiRepr()))
     .catch(err => res.status(500).json({message: 'Something went wrong'}));
 });
 
-
-app.delete('/posts/:id', (req, res) => {
-  BlogPosts.delete(req.params.id);
-  console.log(`Deleted blog post with id \`${req.params.ID}\``);
-  res.status(204).end();
+app.delete('/:id', (req, res) => {
+  BlogPosts
+    .findByIdAndRemove(req.params.id)
+    .exec()
+    .then(() => {
+      console.log(`Deleted blog post with id \`${req.params.ID}\``);
+      res.status(204).end();
+    });
 });
 
 
@@ -106,14 +112,19 @@ app.use('*', function(req, res) {
   res.status(404).json({message: 'Not Found'});
 });
 
+// closeServer needs access to a server object, but that only
+// gets created when `runServer` runs, so we declare `server` here
+// and then assign a value to it in run
+let server;
+
+// this function connects to our database, then starts the server
 function runServer() {
   return new Promise((resolve, reject) => {
     mongoose.connect(DATABASE_URL, err => {
       if (err) {
         return reject(err);
       }
-
-      app.listen(PORT, () => {
+      server = app.listen(PORT, () => {
         console.log(`Your app is listening on port ${PORT}`);
         resolve();
       })
@@ -125,8 +136,26 @@ function runServer() {
   });
 }
 
+// this function closes the server, and returns a promise. we'll
+// use it in our integration tests later.
+function closeServer() {
+  return mongoose.disconnect().then(() => {
+     return new Promise((resolve, reject) => {
+       console.log('Closing server');
+       server.close(err => {
+           if (err) {
+               return reject(err);
+           }
+           resolve();
+       });
+     });
+  });
+}
+
+// if server.js is called directly (aka, with `node server.js`), this block
+// runs. but we also export the runServer command so other code (for instance, test code) can start the server as needed.
 if (require.main === module) {
   runServer().catch(err => console.error(err));
 };
 
-module.exports = {runServer, app};
+module.exports = {runServer, app, closeServer};
