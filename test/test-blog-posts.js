@@ -9,7 +9,7 @@ const should = chai.should();
 
 const {DATABASE_URL} = require('../config');
 const {BlogPost} = require('../models');
-const {runServer, app} = require('../server');
+const {closeServer, runServer, app} = require('../server');
 
 
 chai.use(chaiHttp);
@@ -67,19 +67,23 @@ describe('blog posts API resource', function() {
     return tearDownDb();
   });
 
+  after(function() {
+    return closeServer();
+  });
+
   // note the use of nested `describe` blocks.
   // this allows us to make clearer, more discrete tests that focus
   // on proving something small
   describe('GET endpoint', function() {
 
-    it('should return all existing posts', function(done) {
+    it('should return all existing posts', function() {
       // strategy:
       //    1. get back all posts returned by by GET request to `/posts`
       //    2. prove res has right status, data type
       //    3. prove the number of posts we got back is equal to number
       //       in db.
       let res;
-      chai.request(app)
+      return chai.request(app)
         .get('/posts')
         .then(_res => {
           res = _res;
@@ -93,16 +97,14 @@ describe('blog posts API resource', function() {
           // the number of returned posts should be same
           // as number of posts in DB
           res.body.should.have.length.of(count);
-          done();
-        })
-        .catch(err => console.error(err));
+        });
     });
 
-    it('should return posts with right fields', function(done) {
+    it('should return posts with right fields', function() {
       // Strategy: Get back all posts, and ensure they have expected keys
 
       let resPost;
-      chai.request(app)
+      return chai.request(app)
         .get('/posts')
         .then(function(res) {
 
@@ -118,15 +120,13 @@ describe('blog posts API resource', function() {
           // just check one of the posts that its values match with those in db
           // and we'll assume it's true for rest
           resPost = res.body[0];
-          return BlogPost.findById(resPost.id);
+          return BlogPost.findById(resPost.id).exec();
         })
         .then(post => {
           resPost.title.should.equal(post.title);
           resPost.content.should.equal(post.content);
           resPost.author.should.equal(post.authorName);
-          done();
-        })
-        .catch(err => console.error(err));
+        });
     });
   });
 
@@ -135,7 +135,7 @@ describe('blog posts API resource', function() {
     // then prove that the post we get back has
     // right keys, and that `id` is there (which means
     // the data was inserted into db)
-    it('should add a new blog post', function(done) {
+    it('should add a new blog post', function() {
 
       const newPost = {
           title: faker.lorem.sentence(),
@@ -146,7 +146,7 @@ describe('blog posts API resource', function() {
           content: faker.lorem.text()
       };
 
-      chai.request(app)
+      return chai.request(app)
         .post('/posts')
         .send(newPost)
         .then(function(res) {
@@ -161,18 +161,14 @@ describe('blog posts API resource', function() {
           res.body.author.should.equal(
             `${newPost.author.firstName} ${newPost.author.lastName}`);
           res.body.content.should.equal(newPost.content);
-          return BlogPost.findById(res.body.id);
+          return BlogPost.findById(res.body.id).exec();
         })
         .then(function(post) {
           post.title.should.equal(newPost.title);
           post.content.should.equal(newPost.content);
           post.author.firstName.should.equal(newPost.author.firstName);
           post.author.lastName.should.equal(newPost.author.lastName);
-          done();
-        })
-        .catch(function(err) {
-          console.error(err);
-        })
+        });
     });
   });
 
@@ -183,7 +179,7 @@ describe('blog posts API resource', function() {
     //  2. Make a PUT request to update that post
     //  3. Prove post returned by request contains data we sent
     //  4. Prove post in db is correctly updated
-    it('should update fields you send over', function(done) {
+    it('should update fields you send over', function() {
       const updateData = {
         title: 'cats cats cats',
         content: 'dogs dogs dogs',
@@ -193,8 +189,9 @@ describe('blog posts API resource', function() {
         }
       };
 
-      BlogPost
+      return BlogPost
         .findOne()
+        .exec()
         .then(post => {
           updateData.id = post.id;
 
@@ -211,16 +208,14 @@ describe('blog posts API resource', function() {
             `${updateData.author.firstName} ${updateData.author.lastName}`);
           res.body.content.should.equal(updateData.content);
 
-          return BlogPost.findById(res.body.id);
+          return BlogPost.findById(res.body.id).exec();
         })
         .then(post => {
           post.title.should.equal(updateData.title);
           post.content.should.equal(updateData.content);
           post.author.firstName.should.equal(updateData.author.firstName);
           post.author.lastName.should.equal(updateData.author.lastName);
-          done();
-        })
-        .catch(err => console.error(err));
+        });
     });
   });
 
@@ -230,11 +225,11 @@ describe('blog posts API resource', function() {
     //  2. make a DELETE request for that post's id
     //  3. assert that response has right status code
     //  4. prove that post with the id doesn't exist in db anymore
-    it('should delete a post by id', function(done) {
+    it('should delete a post by id', function() {
 
       let post;
 
-      BlogPost
+      return BlogPost
         .findOne()
         .exec()
         .then(_post => {
@@ -251,9 +246,7 @@ describe('blog posts API resource', function() {
           // an error. `should.be.null(_post)` is how we can
           // make assertions about a null value.
           should.not.exist(_post);
-          done();
-        })
-        .catch(err => {console.log(err)});
+        });
     });
   });
 });
