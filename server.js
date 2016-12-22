@@ -97,6 +97,7 @@ app.put('/posts/:id', (req, res) => {
     .catch(err => res.status(500).json({message: 'Something went wrong'}));
 });
 
+
 app.delete('/:id', (req, res) => {
   BlogPosts
     .findByIdAndRemove(req.params.id)
@@ -118,14 +119,14 @@ app.use('*', function(req, res) {
 let server;
 
 // this function connects to our database, then starts the server
-function runServer() {
+function runServer(databaseUrl=DATABASE_URL, port=PORT) {
   return new Promise((resolve, reject) => {
-    mongoose.connect(DATABASE_URL, err => {
+    mongoose.connect(databaseUrl, err => {
       if (err) {
         return reject(err);
       }
-      server = app.listen(PORT, () => {
-        console.log(`Your app is listening on port ${PORT}`);
+      server = app.listen(port, () => {
+        console.log(`Your app is listening on port ${port}`);
         resolve();
       })
       .on('error', err => {
