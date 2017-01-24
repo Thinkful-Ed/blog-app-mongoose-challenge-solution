@@ -40,11 +40,14 @@ app.get('/posts/:id', (req, res) => {
 
 app.post('/posts', (req, res) => {
   const requiredFields = ['title', 'content', 'author'];
-  requiredFields.forEach(field => {
+  for (let i=0; i<requiredFields.length; i++) {
+    const field = requiredFields[i];
     if (!(field in req.body)) {
-      res.status(400).json(
-        {error: `Missing "${field}" in request body`});
-    }});
+      const message = `Missing \`${field}\` in request body`
+      console.error(message);
+      return res.status(400).send(message);
+    }
+  }
 
   BlogPost
     .create({
