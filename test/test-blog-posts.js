@@ -199,7 +199,7 @@ describe('blog posts API resource', function() {
         })
         .then(res => {
           res.should.have.status(204);
-          return BlogPost.findById(res.body.id);
+          return BlogPost.findById(updateData.id);
         })
         .then(post => {
           post.title.should.equal(updateData.title);
