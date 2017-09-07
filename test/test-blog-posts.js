@@ -120,7 +120,7 @@ describe('blog posts API resource', function() {
           // just check one of the posts that its values match with those in db
           // and we'll assume it's true for rest
           resPost = res.body[0];
-          return BlogPost.findById(resPost.id).exec();
+          return BlogPost.findById(resPost.id);
         })
         .then(post => {
           resPost.title.should.equal(post.title);
@@ -161,7 +161,7 @@ describe('blog posts API resource', function() {
           res.body.author.should.equal(
             `${newPost.author.firstName} ${newPost.author.lastName}`);
           res.body.content.should.equal(newPost.content);
-          return BlogPost.findById(res.body.id).exec();
+          return BlogPost.findById(res.body.id);
         })
         .then(function(post) {
           post.title.should.equal(newPost.title);
@@ -177,7 +177,6 @@ describe('blog posts API resource', function() {
     // strategy:
     //  1. Get an existing post from db
     //  2. Make a PUT request to update that post
-    //  3. Prove post returned by request contains data we sent
     //  4. Prove post in db is correctly updated
     it('should update fields you send over', function() {
       const updateData = {
@@ -191,7 +190,6 @@ describe('blog posts API resource', function() {
 
       return BlogPost
         .findOne()
-        .exec()
         .then(post => {
           updateData.id = post.id;
 
@@ -200,15 +198,8 @@ describe('blog posts API resource', function() {
             .send(updateData);
         })
         .then(res => {
-          res.should.have.status(201);
-          res.should.be.json;
-          res.body.should.be.a('object');
-          res.body.title.should.equal(updateData.title);
-          res.body.author.should.equal(
-            `${updateData.author.firstName} ${updateData.author.lastName}`);
-          res.body.content.should.equal(updateData.content);
-
-          return BlogPost.findById(res.body.id).exec();
+          res.should.have.status(204);
+          return BlogPost.findById(res.body.id);
         })
         .then(post => {
           post.title.should.equal(updateData.title);
@@ -231,7 +222,6 @@ describe('blog posts API resource', function() {
 
       return BlogPost
         .findOne()
-        .exec()
         .then(_post => {
           post = _post;
           return chai.request(app).delete(`/posts/${post.id}`);
