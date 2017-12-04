@@ -1,4 +1,7 @@
+'use strict';
+
 const mongoose = require('mongoose');
+mongoose.Promise = global.Promise;
 
 const blogPostSchema = mongoose.Schema({
   author: {
@@ -23,7 +26,7 @@ blogPostSchema.methods.apiRepr = function() {
     title: this.title,
     created: this.created
   };
-}
+};
 
 const BlogPost = mongoose.model('BlogPost', blogPostSchema);
 

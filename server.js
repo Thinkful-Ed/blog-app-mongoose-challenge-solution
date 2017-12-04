@@ -1,18 +1,18 @@
+'use strict';
+
 const bodyParser = require('body-parser');
 const express = require('express');
-const mongoose = require('mongoose');
 const morgan = require('morgan');
+const mongoose = require('mongoose');
+mongoose.Promise = global.Promise;
 
-const {DATABASE_URL, PORT} = require('./config');
-const {BlogPost} = require('./models');
+const { DATABASE_URL, PORT } = require('./config');
+const { BlogPost } = require('./models');
 
 const app = express();
 
 app.use(morgan('common'));
 app.use(bodyParser.json());
-
-mongoose.Promise = global.Promise;
-
 
 app.get('/posts', (req, res) => {
   BlogPost
@@ -22,7 +22,7 @@ app.get('/posts', (req, res) => {
     })
     .catch(err => {
       console.error(err);
-      res.status(500).json({error: 'something went terribly wrong'});
+      res.status(500).json({ error: 'something went terribly wrong' });
     });
 });
 
@@ -32,16 +32,16 @@ app.get('/posts/:id', (req, res) => {
     .then(post => res.json(post.apiRepr()))
     .catch(err => {
       console.error(err);
-      res.status(500).json({error: 'something went horribly awry'});
+      res.status(500).json({ error: 'something went horribly awry' });
     });
 });
 
 app.post('/posts', (req, res) => {
   const requiredFields = ['title', 'content', 'author'];
-  for (let i=0; i<requiredFields.length; i++) {
+  for (let i = 0; i < requiredFields.length; i++) {
     const field = requiredFields[i];
     if (!(field in req.body)) {
-      const message = `Missing \`${field}\` in request body`
+      const message = `Missing \`${field}\` in request body`;
       console.error(message);
       return res.status(400).send(message);
     }
@@ -55,8 +55,8 @@ app.post('/posts', (req, res) => {
     })
     .then(blogPost => res.status(201).json(blogPost.apiRepr()))
     .catch(err => {
-        console.error(err);
-        res.status(500).json({error: 'Something went wrong'});
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     });
 
 });
@@ -66,11 +66,11 @@ app.delete('/posts/:id', (req, res) => {
   BlogPost
     .findByIdAndRemove(req.params.id)
     .then(() => {
-      res.status(204).json({message: 'success'});
+      res.status(204).json({ message: 'success' });
     })
     .catch(err => {
       console.error(err);
-      res.status(500).json({error: 'something went terribly wrong'});
+      res.status(500).json({ error: 'something went terribly wrong' });
     });
 });
 
@@ -91,14 +91,14 @@ app.put('/posts/:id', (req, res) => {
   });
 
   BlogPost
-    .findByIdAndUpdate(req.params.id, {$set: updated}, {new: true})
+    .findByIdAndUpdate(req.params.id, { $set: updated }, { new: true })
     .then(updatedPost => res.status(204).end())
-    .catch(err => res.status(500).json({message: 'Something went wrong'}));
+    .catch(err => res.status(500).json({ message: 'Something went wrong' }));
 });
 
 
 app.delete('/:id', (req, res) => {
-  BlogPosts
+  BlogPost
     .findByIdAndRemove(req.params.id)
     .then(() => {
       console.log(`Deleted blog post with id \`${req.params.ID}\``);
@@ -107,8 +107,8 @@ app.delete('/:id', (req, res) => {
 });
 
 
-app.use('*', function(req, res) {
-  res.status(404).json({message: 'Not Found'});
+app.use('*', function (req, res) {
+  res.status(404).json({ message: 'Not Found' });
 });
 
 // closeServer needs access to a server object, but that only
@@ -117,9 +117,9 @@ app.use('*', function(req, res) {
 let server;
 
 // this function connects to our database, then starts the server
-function runServer(databaseUrl=DATABASE_URL, port=PORT) {
+function runServer(databaseUrl = DATABASE_URL, port = PORT) {
   return new Promise((resolve, reject) => {
-    mongoose.connect(databaseUrl, err => {
+    mongoose.connect(databaseUrl, { useMongoClient: true }, err => {
       if (err) {
         return reject(err);
       }
@@ -127,10 +127,10 @@ function runServer(databaseUrl=DATABASE_URL, port=PORT) {
         console.log(`Your app is listening on port ${port}`);
         resolve();
       })
-      .on('error', err => {
-        mongoose.disconnect();
-        reject(err);
-      });
+        .on('error', err => {
+          mongoose.disconnect();
+          reject(err);
+        });
     });
   });
 }
@@ -139,15 +139,15 @@ function runServer(databaseUrl=DATABASE_URL, port=PORT) {
 // use it in our integration tests later.
 function closeServer() {
   return mongoose.disconnect().then(() => {
-     return new Promise((resolve, reject) => {
-       console.log('Closing server');
-       server.close(err => {
-           if (err) {
-               return reject(err);
-           }
-           resolve();
-       });
-     });
+    return new Promise((resolve, reject) => {
+      console.log('Closing server');
+      server.close(err => {
+        if (err) {
+          return reject(err);
+        }
+        resolve();
+      });
+    });
   });
 }
 
@@ -155,6 +155,6 @@ function closeServer() {
 // runs. but we also export the runServer command so other code (for instance, test code) can start the server as needed.
 if (require.main === module) {
   runServer().catch(err => console.error(err));
-};
+}
 
-module.exports = {runServer, app, closeServer};
+module.exports = { runServer, app, closeServer };
