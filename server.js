@@ -19,7 +19,7 @@ app.get('/posts', (req, res) => {
   BlogPost
     .find()
     .then(posts => {
-      res.json(posts.map(post => post.apiRepr()));
+      res.json(posts.map(post => post.serialize()));
     })
     .catch(err => {
       console.error(err);
@@ -30,7 +30,7 @@ app.get('/posts', (req, res) => {
 app.get('/posts/:id', (req, res) => {
   BlogPost
     .findById(req.params.id)
-    .then(post => res.json(post.apiRepr()))
+    .then(post => res.json(post.serialize()))
     .catch(err => {
       console.error(err);
       res.status(500).json({ error: 'something went horribly awry' });
@@ -54,7 +54,7 @@ app.post('/posts', (req, res) => {
       content: req.body.content,
       author: req.body.author
     })
-    .then(blogPost => res.status(201).json(blogPost.apiRepr()))
+    .then(blogPost => res.status(201).json(blogPost.serialize()))
     .catch(err => {
       console.error(err);
       res.status(500).json({ error: 'Something went wrong' });
