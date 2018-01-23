@@ -2,6 +2,7 @@
   "name": "blog-app-challenge-starter-files",
   "version": "0.0.1",
   "description": "Shopping list app to demo 'the modern classic'",
+  "repository": "https://github.com/Thinkful-Ed/blog-app-mongoose-challenge-solution",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
