@@ -102,7 +102,7 @@ app.delete('/:id', (req, res) => {
   BlogPost
     .findByIdAndRemove(req.params.id)
     .then(() => {
-      console.log(`Deleted blog post with id \`${req.params.ID}\``);
+      console.log(`Deleted blog post with id \`${req.params.id}\``);
       res.status(204).end();
     });
 });
@@ -120,7 +120,7 @@ let server;
 // this function connects to our database, then starts the server
 function runServer(databaseUrl = DATABASE_URL, port = PORT) {
   return new Promise((resolve, reject) => {
-    mongoose.connect(databaseUrl, { useMongoClient: true }, err => {
+    mongoose.connect(databaseUrl, err => {
       if (err) {
         return reject(err);
       }
