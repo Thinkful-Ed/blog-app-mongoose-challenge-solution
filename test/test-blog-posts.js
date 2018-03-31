@@ -90,14 +90,14 @@ describe('blog posts API resource', function () {
           res = _res;
           res.should.have.status(200);
           // otherwise our db seeding didn't work
-          res.body.should.have.length.of.at.least(1);
+          res.body.should.have.lengthOf.at.least(1);
 
           return BlogPost.count();
         })
         .then(count => {
           // the number of returned posts should be same
           // as number of posts in DB
-          res.body.should.have.length.of(count);
+          res.body.should.have.lengthOf(count);
         });
     });
 
@@ -112,7 +112,7 @@ describe('blog posts API resource', function () {
           res.should.have.status(200);
           res.should.be.json;
           res.body.should.be.a('array');
-          res.body.should.have.length.of.at.least(1);
+          res.body.should.have.lengthOf.at.least(1);
 
           res.body.forEach(function (post) {
             post.should.be.a('object');
