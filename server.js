@@ -1,6 +1,5 @@
 'use strict';
 
-const bodyParser = require('body-parser');
 const express = require('express');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
@@ -12,7 +11,7 @@ const { BlogPost } = require('./models');
 const app = express();
 
 app.use(morgan('common'));
-app.use(bodyParser.json());
+app.use(express.json());
 
 app.get('/posts', (req, res) => {
   BlogPost
